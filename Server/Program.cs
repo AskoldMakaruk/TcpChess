@@ -1,327 +1,54 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
 
-namespace HTTPServer
+namespace ChessServer
 {
-    class Player
+    public class Player
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
-    class Game
+
+    public class Figure
     {
-        public Player BlackPlayer { get; set; }
-        public Player WhitePlayer { get; set; }
-        //00000000 - empty
-        //1: 0 - black 1 - white
-        //2: isFirstPawn
-        //4: isPawn
-        //8: isKnight
-        //16: isBishop
-        //32: isRook
-        //64: isQueen
-        //128: isKing
-        //256: isPawn`s trail
-        public int[] Board { get; set; }
-        public Game()
+        public Figures Figures { get; set; }
+        public static implicit operator Figures(Figure s)
         {
-            Board = new int[]
-            {
-                10,
-                6,
-                8,
-                12,
-                14,
-                8,
-                6,
-                10,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                11,
-                7,
-                9,
-                13,
-                15,
-                9,
-                7,
-                11,
-            };
+            return s.Figures;
         }
-
-        private const ulong one = 1;
-
-        private const ulong Row_1 = 0xFFFFFFFFFFFFFF00;
-        private const ulong Row_2 = 0xFFFFFFFFFFFF00FF;
-        private const ulong Row_7 = 0xFF00FFFFFFFFFFFF;
-        private const ulong Row_8 = 0x00FFFFFFFFFFFFFF;
-        private const ulong A_Line = 0xFEFEFEFEFEFEFEFE;
-        private const ulong B_Line = 0xFDFDFDFDFDFDFDFD;
-        private const ulong H_Line = 0x7F7F7F7F7F7F7F7F;
-        private const ulong G_Line = 0xBFBFBFBFBFBFBFBF;
-
-        public ulong GetMoves(int figure, int boardIndex)
+        public static explicit operator Figure(int i)
         {
-            ulong position = (ulong) 1 << boardIndex;
-            ulong result = 0;
-
-            //pawn
-            if (figure <= 7)
-            {
-                //todo normal check for pawn`s trail
-                //todo check for figure ahead
-                //black 
-                if ((figure & 1) == 0)
-                {
-                    result = (ulong) position >> 8;
-                    if ((figure & 2) == 2) result |= position >> 16;
-                    if (boardIndex - 7 < 64 && Board[boardIndex - 7] != 0 && (Board[boardIndex - 7] & (1 & figure)) == /*is opposite color*/ 0)
-                        result |= (position >> 7 & A_Line); //left
-                    if (boardIndex - 9 < 64 && Board[boardIndex - 9] != 0 && (Board[boardIndex - 9] & (1 & figure)) == 0)
-                        result |= (position >> 9 & H_Line); //right
-                }
-                //white pawn
-                else if ((figure & 1) == 1)
-                {
-                    result = (ulong) position << 8 | position << 16;
-                    if ((figure & 2) == 2) result |= position << 16;
-                    if (boardIndex + 7 < 64 && Board[boardIndex + 7] != 0 && (Board[boardIndex + 7] & (1 & figure)) == 0)
-                        result |= (position << 7 & H_Line); //left
-                    if (boardIndex + 9 < 64 && Board[boardIndex + 9] != 0 && (Board[boardIndex + 9] & (1 & figure)) == 0)
-                        result |= (position << 9 & A_Line); //right
-                }
-            }
-            //knight
-            else if (figure <= 15)
-            {
-                result = (ulong)
-                    (G_Line & H_Line & Row_1 & position << 6) |
-                    (G_Line & H_Line & Row_8 & position >> 10) |
-                    (H_Line & Row_1 & Row_2 & position << 15) |
-                    (H_Line & Row_7 & Row_8 & position >> 17) |
-                    (A_Line & Row_1 & Row_2 & position << 17) |
-                    (A_Line & Row_7 & Row_8 & position >> 15) |
-                    (A_Line & B_Line & Row_1 & position << 10) |
-                    (A_Line & B_Line & Row_8 & position >> 6);
-            }
-            //bishop
-            else if (figure <= 31)
-            {
-                int i = boardIndex;
-                while (((one << i) & H_Line) != 0)
-                {
-                    i += 9;
-                    if (((one << i) & Row_1) == 0) break;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-                }
-
-                i = boardIndex;
-                while (((one << i) & A_Line) != 0)
-                {
-                    i += 7;
-                    if (((one << i) & Row_1) == 0) break;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-
-                }
-
-                i = boardIndex;
-                while (((one << i) & H_Line) != 0)
-                {
-                    i -= 7;
-                    if (((one << i) & Row_8) == 0) break;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-
-                }
-
-                i = boardIndex;
-                while (((one << i) & A_Line) != 0)
-                {
-                    i -= 9;
-                    if (((one << i) & Row_8) == 0) break;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-                }
-
-            }
-            //rook
-            else if (figure <= 63)
-            {
-                int i = boardIndex;
-                //up
-                while (((one << i + 8) & Row_1) != 0)
-                {
-                    i += 8;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-                }
-
-                i = boardIndex;
-                //right
-                while (((one << i + 1) & A_Line) != 0)
-                {
-                    i += 1;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-
-                }
-
-                i = boardIndex;
-                //left
-                while (((one << i - 1) & H_Line) != 0)
-                {
-                    i -= 1;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-
-                }
-
-                i = boardIndex;
-                //down
-                while (((one << i - 8) & Row_8) != 0)
-                {
-                    i -= 8;
-                    result |= one << i;
-                    if (Board[i] != 0) break;
-                }
-            }
-            for (int i = 0; i < 64; i++)
-                if ((result & one << i) != 0 && (Board[i] & (1 & figure)) != 0)
-                    //check if any posible move will land on ally
-                    result ^= one << i;
-            return result;
-
+            return new Figure() { Figures = (Figures) i };
         }
-        public bool CheckMove(byte from, byte to)
+        public static implicit operator int(Figure value)
         {
-            if (from < 64 && to < 64 && from != to)
-            {
-                var figure = Board[from];
-                //if figure is empty
-                //if (figure & 0xff) return false;
-                //var moves = Ge;
-            }
-            return false;
-        }
-        public int turn = 0;
-
-    }
-
-    class Client
-    {
-        public Client(TcpClient Client)
-        {
-            string Request = "";
-            byte[] Buffer = new byte[1024];
-            int Count;
-            while (Client.Connected && (Count = Client.GetStream().Read(Buffer, 0, Buffer.Length)) > 0)
-            {
-                Request += Encoding.UTF8.GetString(Buffer, 0, Count);
-
-                System.Console.Write(DateTime.Now.ToShortTimeString() + ": " + Request + "\nMe:");
-                Request = "";
-                var answer = Console.ReadLine();
-                var answerBytes = Encoding.UTF8.GetBytes(answer);
-                Client.GetStream().Write(answerBytes, 0, answerBytes.Length);
-
-            }
-
-            Client.Close();
+            return (int) value.Figures;
         }
     }
 
     [Flags]
     public enum Figures
     {
-        Black = 0,
-        White = 1,
-        Pawn = 4,
-        Knight = 8,
-        Bishop = 16,
-        Rook = 32,
-        Queen = 64,
-        King = 128,
-        PawnsTrail = 256
+        Black = 0, //0
+        White = 1, //1
+        Pawn = 4, //2
+        Rook = 8, //3
+        Knight = 16, //4    
+        Bishop = 32, //5    
+        Queen = 64, //6
+        King = 128, //7
+        PawnsTrail = 256 //8        
     }
-    class Server
+    public static class Program
     {
-        TcpListener Listener;
-
-        public Server(int Port)
-        {
-            Listener = new TcpListener(IPAddress.Any, Port);
-            Listener.Start();
-            while (true)
-            {
-                ThreadPool.QueueUserWorkItem(new WaitCallback(ClientThread), Listener.AcceptTcpClient());
-            }
-        }
-
-        static void ClientThread(Object StateInfo)
-        {
-            new Client((TcpClient) StateInfo);
-        }
-
-        ~Server()
-        {
-            if (Listener != null)
-                Listener.Stop();
-
-        }
-
         static void Main(string[] args)
         {
             //this prints long in 10101 form
@@ -330,21 +57,113 @@ namespace HTTPServer
             //     fstr += (f & (ulong) 1 << i) == 0 ? "0" : "1";
             // }
 
-            // var game = new Game();
+            var game = new Game();
 
-            // game.Board = new int[64];
-            // game.Board[17] = (int) (Figures.Pawn | Figures.Black);
-            // game.Board[10] = (int) (Figures.Pawn | Figures.White);
+            game.Board = game.Board.Select(c => c & (1 << 6) | (c >> 6 & c)).ToArray();
+            game[45] = (int) (Figures.Black | Figures.Pawn);
+            game[41] = (int) (Figures.White | Figures.Pawn);
+            game[25] = (int) (Figures.White | Figures.Pawn);
+            game[26] = (int) (Figures.Black | Figures.Pawn);
+            var result = game.GetMoves(59);
+            ulong count = 1;
+            var moves = new List<int>();
+            for (var i = 0; i < 64; i++)
+            {
+                if ((result & count << i) != 0)
+                {
+                    moves.Add(i);
+                    //System.Console.WriteLine(i);
+                }
 
-            // var result = game.GetMoves((int) (Figures.Black | Figures.Rook), 9);
-            // ulong count = 1;
-            // for (int i = 0; i < 64; i++)
-            // {
-            //     if ((result & count << i) != 0) System.Console.WriteLine(i);
-            // }
+            }
+            Image<Rgba32> Sprites;
+            using(var file = File.OpenRead("sprites.png"))
+            {
+                var bytes = new byte[file.Length];
+                file.Read(bytes, 0, (int) file.Length);
+                Sprites = Image.Load(bytes);
+            }
 
-            // Console.ReadLine();
-            int MaxThreadsCount = Environment.ProcessorCount * 4;
+            var cellSide = 32;
+            var size = 8;
+            var image = new Image<Rgba32>(size * cellSide, size * cellSide);
+            int x = 0, y = 0;
+            var index = 0;
+            for (var i = 0; i < size; i++)
+            {
+                for (var j = 0; j < size; j++)
+                {
+                    Color textColor;
+                    Color color;
+                    if ((j + i) % 2 == 0)
+                    {
+                        textColor = Rgba32.Black;
+                        color = Rgba32.FromHex("#EBECD0");
+                    }
+                    else
+                    {
+                        textColor = Rgba32.WhiteSmoke;
+                        color = Rgba32.FromHex("#779556");
+                    }
+
+                    var rectangle = new PointF[]
+                    {
+                        new PointF(x, y),
+                        new PointF(x + cellSide, y),
+                        new PointF(x + cellSide, y + cellSide),
+                        new PointF(x, y + cellSide)
+
+                    };
+                    var fonts = new FontCollection();
+                    var Arial = fonts.Install("Fonts/arial.ttf");
+
+                    //draw cell
+                    image.Mutate(cl => cl.FillPolygon(GraphicsOptions.Default, Brushes.Solid(color), rectangle));
+
+                    //draw posible moves
+                    if (moves.Contains(index))
+                    {
+                        var mask = Rgba32.Blue;
+                        mask.A = 150;
+                        image.Mutate(cl => cl.FillPolygon(GraphicsOptions.Default, Brushes.Solid(mask), rectangle));
+                    }
+                    //draw text
+                    image.Mutate(cl => cl.DrawText(index.ToString(), new Font(Arial, 8, FontStyle.Regular), textColor, new PointF(x, y)));
+                    //draw figures
+                    var figure = game.Board[index];
+                    if (figure != 0)
+                    {
+                        var cropX = 0;
+                        for (var q = 0; q < 32; q++)
+                        {
+                            if ((figure & (2 << q)) != 0)
+                            {
+                                cropX = (6 - q) * 45;
+                                System.Console.WriteLine(((Figures) figure).ToString());
+                                break;
+                            }
+                        }
+                        var cropR = new Rectangle(new Point(cropX, ((figure + 1) % 2) * 45), new Size(45, 45));
+                        var sprite = Sprites.Clone();
+                        sprite.Mutate(cl => cl.Crop(cropR));
+                        sprite.Mutate(cl => cl.Resize(new ResizeOptions() { Size = new Size(cellSide, cellSide) }));
+                        image.Mutate(cl => cl.DrawImage(sprite, new Point(x, y), 1));
+                    }
+
+                    x += cellSide;
+                    index++;
+                }
+                x = 0;
+                y += cellSide;
+            }
+            image.SaveAsJpeg(File.OpenWrite("image.jpeg"));
+            System.Console.WriteLine(game.IsCellUnderAttack(35, Figures.White));
+            System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.Black));
+            System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.White));
+
+            return;
+            Console.ReadLine();
+            var MaxThreadsCount = Environment.ProcessorCount * 4;
             ThreadPool.SetMaxThreads(MaxThreadsCount, MaxThreadsCount);
             ThreadPool.SetMinThreads(2, 2);
             new Server(22832);
