@@ -66,7 +66,7 @@ namespace ChessServer
             if ((figure & Figures.Pawn) != 0)
             {
                 //todo normal check for pawn`s trail
-                //todo check for figure ahead
+                //todo get possible moves
 
                 //black 
                 if ((figure & 1) == 0)
