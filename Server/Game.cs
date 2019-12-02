@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChessServer
@@ -54,6 +55,8 @@ namespace ChessServer
         private const ulong H_Line = 0x7F7F7F7F7F7F7F7F;
         private const ulong G_Line = 0xBFBFBFBFBFBFBFBF;
 
+        public List < (int From, int To) > Moves { get; set; }
+
         public ulong GetMoves(int boardIndex, bool posible = false)
         {
             var position = (ulong) 1 << boardIndex;
@@ -64,6 +67,7 @@ namespace ChessServer
             {
                 //todo normal check for pawn`s trail
                 //todo check for figure ahead
+
                 //black 
                 if ((figure & 1) == 0)
                 {

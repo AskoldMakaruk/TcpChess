@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -156,7 +156,7 @@ namespace ChessServer
                 x = 0;
                 y += cellSide;
             }
-            image.SaveAsPng(File.OpenWrite("image.png"));
+            image.SaveAsJpeg(File.OpenWrite("image.jpeg"));
             System.Console.WriteLine(game.IsCellUnderAttack(35, Figures.White));
             System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.Black));
             System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.White));
