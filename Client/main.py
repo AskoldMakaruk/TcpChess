@@ -1,23 +1,13 @@
-board = [[0]*8]*8
-for row in board:
-    for s in row:
-        print(s, end=" ")
-    print()
+import socket
+import select
 
+IP = "127.0.0.1"
+PORT = 22832
+BUFFER_SIZE = 1024
 
-def populateBoard():    
-    rook = Piece()
-    board[0][0]
-
-
-class Piece:
-    x = 0
-    y = 0
-    white = True
-    availibleMoves = [[0]*1]*2
-
-    __init__(x: int, y: int, white: bool, availibleMoves: list):
-        self.x = x
-        self.y = y
-        self.white = white
-        self.availibleMoves = availibleMoves
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((IP, PORT))
+while(True):
+    s.send(input().encode("utf-8"))
+    print("C#: " + s.recv(BUFFER_SIZE).decode("utf-8"))
+    print("Python:", end=" ")

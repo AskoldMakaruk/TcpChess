@@ -271,14 +271,11 @@ namespace HTTPServer
             {
                 Request += Encoding.UTF8.GetString(Buffer, 0, Count);
 
-                if (Request.IndexOf("\n") >= 0 || Request.Length > 4096)
-                {
-                    System.Console.WriteLine(Request);
-                    Request = "";
-                    var answer = "Hi, python!";
-                    var answerBytes = Encoding.UTF8.GetBytes(answer);
-                    Client.GetStream().Write(answerBytes, 0, answerBytes.Length);
-                }
+                System.Console.Write(DateTime.Now.ToShortTimeString() + ": " + Request + "\nMe:");
+                Request = "";
+                var answer = Console.ReadLine();
+                var answerBytes = Encoding.UTF8.GetBytes(answer);
+                Client.GetStream().Write(answerBytes, 0, answerBytes.Length);
 
             }
 
@@ -333,20 +330,20 @@ namespace HTTPServer
             //     fstr += (f & (ulong) 1 << i) == 0 ? "0" : "1";
             // }
 
-            var game = new Game();
+            // var game = new Game();
 
-            game.Board = new int[64];
-            game.Board[17] = (int) (Figures.Pawn | Figures.Black);
-            game.Board[10] = (int) (Figures.Pawn | Figures.White);
+            // game.Board = new int[64];
+            // game.Board[17] = (int) (Figures.Pawn | Figures.Black);
+            // game.Board[10] = (int) (Figures.Pawn | Figures.White);
 
-            var result = game.GetMoves((int) (Figures.Black | Figures.Rook), 9);
-            ulong count = 1;
-            for (int i = 0; i < 64; i++)
-            {
-                if ((result & count << i) != 0) System.Console.WriteLine(i);
-            }
+            // var result = game.GetMoves((int) (Figures.Black | Figures.Rook), 9);
+            // ulong count = 1;
+            // for (int i = 0; i < 64; i++)
+            // {
+            //     if ((result & count << i) != 0) System.Console.WriteLine(i);
+            // }
 
-            Console.ReadLine();
+            // Console.ReadLine();
             int MaxThreadsCount = Environment.ProcessorCount * 4;
             ThreadPool.SetMaxThreads(MaxThreadsCount, MaxThreadsCount);
             ThreadPool.SetMinThreads(2, 2);
