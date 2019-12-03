@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Linq;
 
 namespace ChessServer
@@ -24,19 +26,20 @@ namespace ChessServer
 
         public Game()
         {
+            Moves = new List < (int From, int To) > ();
             var row = new [] { 0, 0, 0, 0, 0, 0, 0, 0 };
             var pawnRow = new [] { 4, 4, 4, 4, 4, 4, 4, 4 };
             var figuresRow = new [] { 8, 16, 32, 64, 128, 32, 16, 8 };
             var figures = new []
             {
-                figuresRow,
-                pawnRow,
-                row,
-                row,
-                row,
-                row,
+                figuresRow.Select(c => c + 1).ToArray(),
                 pawnRow.Select(c => c + 1).ToArray(),
-                figuresRow.Select(c => c + 1).ToArray()
+                row,
+                row,
+                row,
+                row,
+                pawnRow,
+                figuresRow,
             };
             Board = new int[64];
             for (var i = 0; i < 8; i++)
@@ -57,35 +60,38 @@ namespace ChessServer
 
         public List < (int From, int To) > Moves { get; set; }
 
-        public ulong GetMoves(int boardIndex, bool posible = false)
+        public ulong GetMoves(int boardIndex, bool posible = false, int[] board = null)
         {
+            board = board ?? Board;
             var position = (ulong) 1 << boardIndex;
             ulong result = 0;
-            var figure = (Figure) Board[boardIndex];
+            var figure = (Figure) board[boardIndex];
 
             if ((figure & Figures.Pawn) != 0)
             {
-                //todo normal check for pawn`s trail
-                //todo get possible moves
-
+                var(lastFrom, lastTo) = Moves.Count == 0 ? (0, 0) : Moves.Last();
                 //black 
                 if ((figure & 1) == 0)
                 {
                     result = position >> 8;
-                    if ((figure & 2) == 2) result |= position >> 16;
-                    if (boardIndex - 7 < 64 && Board[boardIndex - 7] != 0 && (Board[boardIndex - 7] & 1 & figure) == 0)
-                        result |= (position >> 7 & A_Line); //left
-                    if (boardIndex - 9 < 64 && Board[boardIndex - 9] != 0 && (Board[boardIndex - 9] & 1 & figure) == 0)
-                        result |= (position >> 9 & H_Line); //right
+                    if ((position & Row_7) == 0) result |= position >> 16;
+                    if ((boardIndex - 7 < 64 && board[boardIndex - 7] != 0 && (board[boardIndex - 7] & 1 & figure) == 0) ||
+                        (lastTo - lastFrom == 16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == 1))
+                        result |= position >> 7 & A_Line; //left
+                    if (boardIndex - 9 < 64 && board[boardIndex - 9] != 0 && (board[boardIndex - 9] & 1 & figure) == 0 ||
+                        (lastTo - lastFrom == 16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == -1))
+                        result |= position >> 9 & H_Line; //right
                 }
                 //white pawn
                 else if ((figure & 1) == 1)
                 {
-                    result = (ulong) position << 8 | position << 16;
-                    if ((figure & 2) == 2) result |= position << 16;
-                    if (boardIndex + 7 < 64 && Board[boardIndex + 7] != 0 && (Board[boardIndex + 7] & (1 & figure)) == 0)
+                    result = position << 8;
+                    if ((position & Row_2) == 0) result |= position << 16;
+                    if (boardIndex + 7 < 64 && board[boardIndex + 7] != 0 && (board[boardIndex + 7] & 1 & figure) == 0 ||
+                        (lastTo - lastFrom == -16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == -1))
                         result |= (position << 7 & H_Line); //left
-                    if (boardIndex + 9 < 64 && Board[boardIndex + 9] != 0 && (Board[boardIndex + 9] & (1 & figure)) == 0)
+                    if (boardIndex + 9 < 64 && board[boardIndex + 9] != 0 && (board[boardIndex + 9] & 1 & figure) == 0 ||
+                        (lastTo - lastFrom == -16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == 1))
                         result |= (position << 9 & A_Line); //right
                 }
             }
@@ -98,7 +104,7 @@ namespace ChessServer
                 {
                     i += 8;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -107,7 +113,7 @@ namespace ChessServer
                 {
                     i += 1;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -116,7 +122,7 @@ namespace ChessServer
                 {
                     i -= 1;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -125,7 +131,7 @@ namespace ChessServer
                 {
                     i -= 8;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
             }
 
@@ -150,7 +156,7 @@ namespace ChessServer
                     i += 9;
                     if (((one << i) & Row_1) == 0) break;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -159,7 +165,7 @@ namespace ChessServer
                     i += 7;
                     if (((one << i) & Row_1) == 0) break;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -168,7 +174,7 @@ namespace ChessServer
                     i -= 7;
                     if (((one << i) & Row_8) == 0) break;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
                 }
 
                 i = boardIndex;
@@ -177,45 +183,86 @@ namespace ChessServer
                     i -= 9;
                     if (((one << i) & Row_8) == 0) break;
                     result |= one << i;
-                    if (Board[i] != 0) break;
+                    if (board[i] != 0) break;
+                }
+            }
+
+            if ((figure & (Figures.King)) != 0)
+            {
+                result =
+                    (Row_1 & position << 8) |
+                    (Row_1 & H_Line & position << 7) |
+                    (Row_1 & A_Line & position << 9) |
+                    (A_Line & position << 1) |
+                    (H_Line & position >> 1) |
+                    (Row_8 & position >> 8) |
+                    (Row_8 & A_Line & position >> 7) |
+                    (Row_8 & H_Line & position >> 9);
+            }
+
+            int kingPosition = 0;
+            for (var i = 0; i < 64; i++)
+            {
+                if ((((Figures) board[i] & Figures.King) != 0) && (board[i] & 1) == (1 & figure))
+                {
+                    kingPosition = i;
+                    break;
                 }
             }
 
             for (var i = 0; i < 64; i++)
-                if ((result & one << i) != 0 && Board[i] != 0 && ((1 & Board[i]) ^ (1 & figure)) == 0)
-                    //check if any posible move will land on ally
+            {
+                //check if any posible move will land on ally
+                if ((result & one << i) != 0 && board[i] != 0 && ((1 & board[i]) ^ (1 & figure)) == 0)
                     result ^= one << i;
+
+            }
+            if (!posible)
+                //check if king underAttack               
+                result = KingUnderAttackMask(figure, kingPosition, result, boardIndex);
+
             return result;
         }
 
-        public bool IsCellUnderAttack(int cellIndex, Figures colorOfAttacker, int[] board = null)
+        public bool Move(int from, int to)
         {
-            board = board == null?Board : board;
-            var color = (ulong) colorOfAttacker;
-            for (var i = 0; i < 64; i++)
+            var moves = GetMoves(from);
+            if ((moves & (one << to)) != 0)
             {
-                if (Board[i] != 0)
-                {
-                    var moves = GetMoves(i);
-                    if ((moves >> cellIndex & color) != 0)
-                        return true;
-                }
+                Board = NoMove(from, to);
+                Moves.Add((from, to));
+                return true;
             }
-
             return false;
         }
-
-        public bool CheckMove(byte from, byte to)
+        public int[] NoMove(int from, int to)
         {
-            if (from < 64 && to < 64 && from != to)
-            {
-                var figure = Board[from];
-                //if figure is empty
-                //if (figure & 0xff) return false;
-                //var moves = Ge;
-            }
+            var buffer = Board.Clone() as int[];
 
-            return false;
+            buffer[to] = buffer[from];
+            buffer[from] = 0;
+            return buffer;
+        }
+        public ulong KingUnderAttackMask(Figures kingColor, int kingPosition, ulong possibleMoves, int from)
+        {
+            for (var i = 0; i < 64; i++)
+                if ((possibleMoves & one << i) != 0)
+                {
+                    var board = NoMove(from, i);
+                    ulong result = 0;
+                    for (int j = 0; j < 64; j++)
+                    {
+
+                        if (((int) kingColor & 1) != (1 & board[j]))
+                            result |= GetMoves(j, true, board);
+                    }
+                    if ((result & (one << kingPosition)) != 0)
+                    {
+                        possibleMoves ^= one << i;
+                    }
+                }
+            System.Console.WriteLine(possibleMoves.ToPositions());
+            return possibleMoves;
         }
 
         public int turn = 0;

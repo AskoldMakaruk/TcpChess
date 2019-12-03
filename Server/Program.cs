@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -49,6 +49,18 @@ namespace ChessServer
     }
     public static class Program
     {
+        public static string ToPositions(this ulong moves)
+        {
+            var res = "";
+            for (var i = 0; i < 64; i++)
+            {
+                if ((moves & (ulong) 1 << i) != 0)
+                {
+                    res += i + " ";
+                }
+            }
+            return res;
+        }
         static void Main(string[] args)
         {
             //this prints long in 10101 form
@@ -57,19 +69,19 @@ namespace ChessServer
             //     fstr += (f & (ulong) 1 << i) == 0 ? "0" : "1";
             // }
 
-            var game = new Game();
+            var game = new Game() { Board = new int[64] };
+            game.Board[37] = (int) (Figures.White | Figures.Pawn);
+            game.Board[35] = (int) (Figures.White | Figures.Pawn);
 
-            game.Board = game.Board.Select(c => c & (1 << 6) | (c >> 6 & c)).ToArray();
-            game[45] = (int) (Figures.Black | Figures.Pawn);
-            game[41] = (int) (Figures.White | Figures.Pawn);
-            game[25] = (int) (Figures.White | Figures.Pawn);
-            game[26] = (int) (Figures.Black | Figures.Pawn);
-            var result = game.GetMoves(59);
-            ulong count = 1;
+            game.Board[52] = (int) (Figures.Black | Figures.Pawn);
+
+            game.Move(52, 36);
+            var result = game.GetMoves(35);
+            System.Console.WriteLine(result.ToPositions());
             var moves = new List<int>();
             for (var i = 0; i < 64; i++)
             {
-                if ((result & count << i) != 0)
+                if ((result & (ulong) 1 << i) != 0)
                 {
                     moves.Add(i);
                     //System.Console.WriteLine(i);
@@ -87,7 +99,7 @@ namespace ChessServer
             var cellSide = 32;
             var size = 8;
             var image = new Image<Rgba32>(size * cellSide, size * cellSide);
-            int x = 0, y = 0;
+            int x = 0, y = cellSide * (size - 1);
             var index = 0;
             for (var i = 0; i < size; i++)
             {
@@ -143,7 +155,7 @@ namespace ChessServer
                                 break;
                             }
                         }
-                        var cropR = new Rectangle(new Point(cropX, ((figure + 1) % 2) * 45), new Size(45, 45));
+                        var cropR = new Rectangle(new Point(cropX, (figure + 1) % 2 * 45), new Size(45, 45));
                         var sprite = Sprites.Clone();
                         sprite.Mutate(cl => cl.Crop(cropR));
                         sprite.Mutate(cl => cl.Resize(new ResizeOptions() { Size = new Size(cellSide, cellSide) }));
@@ -154,12 +166,11 @@ namespace ChessServer
                     index++;
                 }
                 x = 0;
-                y += cellSide;
+                y -= cellSide;
             }
             image.SaveAsJpeg(File.OpenWrite("image.jpeg"));
-            System.Console.WriteLine(game.IsCellUnderAttack(35, Figures.White));
-            System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.Black));
-            System.Console.WriteLine(game.IsCellUnderAttack(34, Figures.White));
+            // System.Console.WriteLine(game.GetCellsUnderAttack(Figures.White));
+            // System.Console.WriteLine(game.GetCellsUnderAttack(Figures.White));
 
             return;
             Console.ReadLine();
