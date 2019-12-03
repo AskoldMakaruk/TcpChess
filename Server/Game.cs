@@ -1,8 +1,13 @@
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Diagnostics;
 using System.Linq;
 
+//todo рокировка 
+//todo превращение пешки в фигуру на выбор
+//todo проверка на мат
+//todo очередность ходов
+//todo проверка на пат
+//todo проверка на три одинаковых хода
+//todo юнит тестирование всех комбинаций
 namespace ChessServer
 {
     public class Game
