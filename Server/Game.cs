@@ -10,7 +10,7 @@ using System.Linq;
 //todo юнит тестирование всех комбинаций
 namespace ChessServer
 {
-    public class Game
+    public class TestGame
     {
         public int this [int i] { get => Board[i]; set => Board[i] = value; }
         public Player BlackPlayer { get; set; }
@@ -29,7 +29,7 @@ namespace ChessServer
         //256: isPawn`s trail
         public int[] Board { get; set; }
 
-        public Game()
+        public TestGame()
         {
             Moves = new List < (int From, int To) > ();
             var row = new [] { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -78,26 +78,46 @@ namespace ChessServer
                 //black 
                 if ((figure & 1) == 0)
                 {
-                    result = position >> 8;
-                    if ((position & Row_7) == 0) result |= position >> 16;
-                    if ((boardIndex - 7 < 64 && board[boardIndex - 7] != 0 && (board[boardIndex - 7] & 1 & figure) == 0) ||
-                        (lastTo - lastFrom == 16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == 1))
-                        result |= position >> 7 & A_Line; //left
-                    if (boardIndex - 9 < 64 && board[boardIndex - 9] != 0 && (board[boardIndex - 9] & 1 & figure) == 0 ||
-                        (lastTo - lastFrom == 16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == -1))
-                        result |= position >> 9 & H_Line; //right
+                    bool emptyAhead_1 = boardIndex - 8 > 0 && Board[boardIndex - 8] == 0;
+                    bool emptyAhead_2 = boardIndex - 16 > 0 && Board[boardIndex - 16] == 0 && emptyAhead_1;
+
+                    bool whiteFigureRight = boardIndex - 7 > 0 && Board[boardIndex - 7] != 0 &&
+                        (board[boardIndex - 7] & 1) != (1 & figure);
+                    bool whiteFigureLeft = boardIndex - 9 > 0 && board[boardIndex - 9] != 0 &&
+                        (board[boardIndex - 9] & 1) != (1 & figure);
+
+                    bool enPassant = lastTo - lastFrom == 16 && (board[lastTo] & (int) Figures.Pawn) != 0;
+
+                    bool enPassantRight = enPassant && lastTo - boardIndex == 1;
+                    bool enPassantLeft = enPassant && lastTo - boardIndex == -1;
+
+                    if (emptyAhead_1) result = position >> 8;
+                    if ((position & Row_7) == 0 && emptyAhead_2) result |= position >> 16;
+
+                    if (whiteFigureRight || enPassantRight) result |= position >> 7 & A_Line;
+                    if (whiteFigureLeft || enPassantLeft) result |= position >> 9 & H_Line;
                 }
                 //white pawn
                 else if ((figure & 1) == 1)
                 {
-                    result = position << 8;
-                    if ((position & Row_2) == 0) result |= position << 16;
-                    if (boardIndex + 7 < 64 && board[boardIndex + 7] != 0 && (board[boardIndex + 7] & 1 & figure) == 0 ||
-                        (lastTo - lastFrom == -16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == -1))
-                        result |= (position << 7 & H_Line); //left
-                    if (boardIndex + 9 < 64 && board[boardIndex + 9] != 0 && (board[boardIndex + 9] & 1 & figure) == 0 ||
-                        (lastTo - lastFrom == -16 && (board[lastTo] & (int) Figures.Pawn) != 0 && lastTo - boardIndex == 1))
-                        result |= (position << 9 & A_Line); //right
+                    bool emptyAhead_1 = boardIndex + 8 < 64 && Board[boardIndex + 8] == 0;
+                    bool emptyAhead_2 = boardIndex + 16 < 64 && Board[boardIndex + 16] == 0 && emptyAhead_1;
+
+                    bool blackFigureRight = boardIndex + 9 < 64 && board[boardIndex + 9] != 0 &&
+                        (board[boardIndex + 9] & 1) != (1 & figure);
+                    bool blackFigureLeft = boardIndex + 7 < 64 && Board[boardIndex + 7] != 0 &&
+                        (board[boardIndex + 7] & 1) != (1 & figure);
+
+                    bool enPassant = lastTo - lastFrom == -16 && (board[lastTo] & (int) Figures.Pawn) != 0;
+
+                    bool enPassantRight = enPassant && lastTo - boardIndex == 1;
+                    bool enPassantLeft = enPassant && lastTo - boardIndex == -1;
+
+                    if (emptyAhead_1) result = position << 8;
+                    if ((position & Row_2) == 0 && emptyAhead_2) result |= position << 16;
+
+                    if (blackFigureRight || enPassantRight) result |= result |= position << 9 & A_Line;
+                    if (blackFigureLeft || enPassantLeft) result |= position << 7 & H_Line;
                 }
             }
 
