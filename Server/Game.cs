@@ -225,16 +225,6 @@ namespace ChessServer
                     (Row_8 & H_Line & position >> 9);
             }
 
-            int kingPosition = 0;
-            for (var i = 0; i < 64; i++)
-            {
-                if ((((Figures) board[i] & Figures.King) != 0) && (board[i] & 1) == (1 & figure))
-                {
-                    kingPosition = i;
-                    break;
-                }
-            }
-
             for (var i = 0; i < 64; i++)
             {
                 //check if any posible move will land on ally
@@ -244,11 +234,23 @@ namespace ChessServer
             }
             if (!posible)
                 //check if king underAttack               
-                result = KingUnderAttackMask(figure, kingPosition, result, boardIndex);
+                result = KingUnderAttackMask(figure, result, boardIndex);
 
             return result;
         }
-
+        public static int GetKingPosition(int[] board, Figures figure)
+        {
+            int kingPosition = 0;
+            for (var i = 0; i < 64; i++)
+            {
+                if ((((Figures) board[i] & Figures.King) != 0) && (board[i] & 1) == (1 & (int) figure))
+                {
+                    kingPosition = i;
+                    break;
+                }
+            }
+            return kingPosition;
+        }
         public bool Move(int from, int to)
         {
             var moves = GetMoves(from);
@@ -268,8 +270,9 @@ namespace ChessServer
             buffer[from] = 0;
             return buffer;
         }
-        public ulong KingUnderAttackMask(Figures kingColor, int kingPosition, ulong possibleMoves, int from)
+        public ulong KingUnderAttackMask(Figures kingColor, ulong possibleMoves, int from)
         {
+            var debug = possibleMoves.ToPositions();
             for (var i = 0; i < 64; i++)
                 if ((possibleMoves & one << i) != 0)
                 {
@@ -281,12 +284,14 @@ namespace ChessServer
                         if (((int) kingColor & 1) != (1 & board[j]))
                             result |= GetMoves(j, true, board);
                     }
-                    if ((result & (one << kingPosition)) != 0)
+                    debug = result.ToPositions();
+                    if ((result & (one << GetKingPosition(board, kingColor))) != 0)
                     {
                         possibleMoves ^= one << i;
                     }
+                    debug = possibleMoves.ToPositions();
                 }
-            System.Console.WriteLine(possibleMoves.ToPositions());
+
             return possibleMoves;
         }
 
