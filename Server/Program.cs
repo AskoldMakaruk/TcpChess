@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Net;
+using System.Text;
+using SimpleTCP;
 
 namespace ChessServer
 {
-    public class Player
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-    }
 
     public class Figure
     {
@@ -66,31 +63,33 @@ namespace ChessServer
             }
             return result;
         }
+
         static void Main(string[] args)
         {
-            //this prints long in 10101 form
-            // for (int i = 0; i < 64; i++)
-            // {
-            //     fstr += (f & (ulong) 1 << i) == 0 ? "0" : "1";
-            // }
+            var server = new SimpleTcpServer();
+            server.Delimiter = Encoding.UTF8.GetBytes("\n") [0];
+            server.DelimiterDataReceived += (sender, msg) =>
+            {
+                Console.WriteLine(msg.MessageString);
+                msg.ReplyLine("You said: " + msg.MessageString + "\n");
+            };
+            server.ClientConnected += (sender, client) =>
+            {
+                Console.WriteLine("Connected: " + ((IPEndPoint) client.Client.RemoteEndPoint).Address.MapToIPv4().ToString());
 
-            var game = new TestGame() { Board = new int[64] };
-            game.Board[37] = (int) (Figures.White | Figures.Pawn);
-            game.Board[35] = (int) (Figures.White | Figures.Pawn);
-
-            game.Board[52] = (int) (Figures.Black | Figures.Pawn);
-
-            game.Move(52, 36);
-            var result = game.GetMoves(35);
-            System.Console.WriteLine(result.ToPositions());
-
-            return;
-            var MaxThreadsCount = Environment.ProcessorCount * 4;
-            ThreadPool.SetMaxThreads(MaxThreadsCount, MaxThreadsCount);
-            ThreadPool.SetMinThreads(2, 2);
-            new Server(22832);
+            };
+            server.ClientDisconnected += (sender, client) =>
+            {
+                Console.WriteLine("Disconected: " + ((IPEndPoint) client.Client.RemoteEndPoint).Address.MapToIPv4().ToString());
+            };
+            server.Start(22832);
+            // var MaxThreadsCount = Environment.ProcessorCount * 4;
+            // ThreadPool.SetMaxThreads(MaxThreadsCount, MaxThreadsCount);
+            // ThreadPool.SetMinThreads(2, 2);
+            // new Server(22832);
 
             Console.ReadLine();
         }
+
     }
 }

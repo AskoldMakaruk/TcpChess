@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -7,8 +8,8 @@ namespace ChessServer
 {
     public class Server
     {
-        TcpListener Listener;
-
+        private readonly TcpListener Listener;
+        public static List<Player> Clients = new List<Player>();
         public Server(int Port)
         {
             Listener = new TcpListener(IPAddress.Any, Port);
@@ -21,7 +22,7 @@ namespace ChessServer
 
         static void ClientThread(object StateInfo)
         {
-            var client = new Client((TcpClient) StateInfo);
+            Clients.Add(new Player((TcpClient) StateInfo));
         }
 
         ~Server()

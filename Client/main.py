@@ -1,13 +1,23 @@
 import socket
 import select
 
-IP = "127.0.0.1"
-PORT = 22832
-BUFFER_SIZE = 1024
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((IP, PORT))
+class Server:
+    IP = "127.0.0.1"
+    PORT = 22832
+    BUFFER_SIZE = 1024
+
+    Connection: socket
+
+    def __init__(self):
+        self.Connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.Connection.connect((self.IP, self.PORT))
+
+    def sendMessage(self, mes: str):
+        self.Connection.send((mes+"\n").encode("utf-8"))
+        return self.Connection.recv(self.BUFFER_SIZE).decode("utf-8")
+
+
+serv = Server()
 while(True):
-    s.send(input().encode("utf-8"))
-    print("C#: " + s.recv(BUFFER_SIZE).decode("utf-8"))
-    print("Python:", end=" ")
+    print(serv.sendMessage(input("text: ")))

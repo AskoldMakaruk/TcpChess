@@ -25,5 +25,17 @@ namespace Tests
             Assert.True(MovesEqual(result, 3, 10, 12, 18, 20));
         }
 
+        [Test]
+        public void King_Defense()
+        {
+            TestGame[11] = (int) (Figures.King | Figures.Black);
+            TestGame[20] = (int) (Figures.Queen | Figures.Black);
+
+            TestGame[13] = (int) (Figures.Rook | Figures.White);
+
+            Assert.True(MovesEqual(TestGame.GetMoves(20), 12, 13));
+            Assert.True(MovesEqual(TestGame.GetMoves(11), 2, 3, 4, 18, 19));
+        }
+
     }
 }

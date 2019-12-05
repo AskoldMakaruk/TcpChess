@@ -4,8 +4,9 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0007"/>
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0007"/>
+    <PackageReference Include="SimpleTCP" Version="1.0.24" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0007" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0007" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Fonts\arial.ttf">
