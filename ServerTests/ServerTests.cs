@@ -7,7 +7,7 @@ namespace Tests
 {
     public abstract class ServerTests
     {
-        public const bool RenderAll = true;
+        public const bool RenderAll = false;
         protected TestGame TestGame;
 
         [SetUp]
