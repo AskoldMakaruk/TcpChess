@@ -1,5 +1,6 @@
 # Starter pipeline
 
+
 trigger:
 - master
 
@@ -17,8 +18,7 @@ steps:
     command: 'test'
     projects: '**/ServerTests.csproj'
     testRunTitle: 'MainTests'
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
   inputs:
-    command: 'pack'
-    packagesToPack: '**/*.csproj'
-    versioningScheme: 'off'
+    command: 'publish'
+    publishWebProjects: true
